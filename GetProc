@@ -7,8 +7,8 @@
        Dcl-S w_Url             Char(4096) ;
        Dcl-s MessageText       varchar(32740);
        Dcl-s MessageLength     int(5);
-	   Dcl-S ResponsePos       Packed(4); 
-	   Dcl-S W_Status          Char(10) ;
+       Dcl-S ResponsePos       Packed(4); 
+       Dcl-S W_Status          Char(10) ;
 
        // Url
        W_url = 'https://gorest.co.in/public-api/users';
