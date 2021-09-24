@@ -7,8 +7,6 @@
        Dcl-S w_Url             Char(4096) ;
        Dcl-s MessageText       varchar(32740);
        Dcl-s MessageLength     int(5);
-       Dcl-S ResponsePos       Packed(4); 
-       Dcl-S W_Status          Char(10) ;
 
        // Url
        W_url = 'https://gorest.co.in/public-api/users';
@@ -28,11 +26,19 @@
        // Validate the response from SQL
             Exec sql GET DIAGNOSTICS CONDITION 1
                           :ReturnedSqlCode = DB2_RETURNED_SQLCODE ;
-						  
-	   // Parsing logic
-			ResponsePos = %Scan('responseCode':ResponseHeader);  
-			If %Subst(ResponseHeader:ResponsePos+14:3) = '200' ; 
-				w_Status = 'Success' ;                             
-				// Parse logic 
-			Endif
+
+       // Parse the JSON Value and write into PF
+       If ReturnedSqlCode = *Blanks;
+            Exec sql
+              Insert into Vasanth/CustMst
+              Select * from JSON_TABLE( SYSTOOLS.HTTPGETCLOB(
+              :w_Url, null) ,
+              '$.data[*]'
+              columns("id" VARCHAR(10),
+                      "name" VARCHAR(50),
+                      "email" VARCHAR(50),
+                      "gender" VARCHAR(10),
+                      "status" VARCHAR(10) ) ) ;
+       Endif;
+
        *inlr = *on ;
