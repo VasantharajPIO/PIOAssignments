@@ -1,0 +1,70 @@
+**Free
+       Ctl-Opt Option(*Nodebugio:*Srcstmt:*Nounref) ;
+
+       Dcl-S ResponseMsg       Varchar(600) ;
+       Dcl-S ResponseHeader    Varchar(1000) ;
+       Dcl-S ReturnedSQLCode   Char(5) ;
+       Dcl-S w_Url             Char(4096) ;
+       Dcl-S tokenheader       Char(4096) ;
+       Dcl-S Body              Char(4096) ;
+       Dcl-s MessageText       varchar(32740);
+       Dcl-s MessageLength     int(5);
+       Dcl-s ID                Char(10) ;
+       Dcl-s Name              Char(50) ;
+       Dcl-s Email             Char(50) ;
+       Dcl-s Gender            Char(10) ;
+       Dcl-s Status            Char(10) ;
+
+       // Url
+       W_url = 'https://gorest.co.in/public-api/users/1550';
+
+       Exec sql set option commit = *none;
+
+       // URL encoding
+       Exec sql CALL QSYS2.QCMDEXC('CHGJOB CCSID(37)');
+
+       // Token Header
+          tokenheader = '<httpHeader><header name="content-type"  +
+          value="application/json"></header>'  +
+          '<header name="Authorization" +
+          value="Bearer 58d94a2621069afaf31baad3f683e+
+               f0183e45d379e49f0371d62fe442eba3dbc"></header></httpHeader>' ;
+
+          ID        = ' ' ;
+          Name      = 'VASANTH4';
+          Email     = 'VRAJ4@IAMA.COM' ;
+          Gender    = 'MALE' ;
+          Status    = 'ACTIVE';
+
+       // Token Body
+          body =       '{"name":"' + %trim(name) + '",'+
+                       '"email":"' + %trim(email) + '",'+
+                       '"gender":"' + %trim(gender) + '",'+
+                       '"status":"' + %trim(status) + '"'+
+                       '}';
+
+       // Call API to get the values
+                 EXEC SQL
+                 SELECT Coalesce(Varchar(ResponseMsg,9999),' '),
+                              Varchar(ResponseHttpHeader,1000)
+                 INTO :ResponseMsg, :ResponseHeader
+                 FROM Table(Systools.HttpPutClobVerbose(
+                                     trim(:w_url),
+                                     trim(:tokenheader),
+                                     trim(:body)) )
+                                     as InternalServices;
+
+       // Validate the response from SQL
+            Exec sql GET DIAGNOSTICS CONDITION 1
+                          :ReturnedSqlCode = DB2_RETURNED_SQLCODE ;
+
+
+       // Write the status into APIMSG
+       If ReturnedSqlCode = *Blanks;
+          Exec SQL
+             Insert into APIMSG VALUES(:Email,'SUCCESS');
+       Else;
+          Exec SQL
+             Insert into APIMSG VALUES(:Email,'FAILED');
+       Endif;
+       *inlr = *on ;
