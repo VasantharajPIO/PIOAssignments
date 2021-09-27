@@ -15,8 +15,16 @@
        Dcl-s Gender            Char(10) ;
        Dcl-s Status            Char(10) ;
 
+       dcl-pi PUTPROC ;
+         p_ID     char(10);
+         p_name   char(50);
+         p_email  char(50);
+         p_gender char(10);
+         p_status char(10);
+       end-pi;
+
        // Url
-       W_url = 'https://gorest.co.in/public-api/users/1550';
+       W_url = 'https://gorest.co.in/public-api/users/' + %TRIM(P_ID) ;
 
        Exec sql set option commit = *none;
 
@@ -30,11 +38,11 @@
           value="Bearer 58d94a2621069afaf31baad3f683e+
                f0183e45d379e49f0371d62fe442eba3dbc"></header></httpHeader>' ;
 
-          ID        = ' ' ;
-          Name      = 'VASANTH4';
-          Email     = 'VRAJ4@IAMA.COM' ;
-          Gender    = 'MALE' ;
-          Status    = 'ACTIVE';
+          ID        = ' '      ;
+          Name      = p_name   ;
+          Email     = p_email  ;
+          Gender    = p_gender ;
+          Status    = p_status ;
 
        // Token Body
           body =       '{"name":"' + %trim(name) + '",'+
