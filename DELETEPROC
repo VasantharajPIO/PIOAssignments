@@ -15,8 +15,11 @@
        Dcl-s Gender            Char(10) ;
        Dcl-s Status            Char(10) ;
 
+       dcl-pi DELETEPROC ;
+         p_ID     char(10);
+       end-pi;
        // Url
-       W_url = 'https://gorest.co.in/public-api/users/1476';
+       W_url = 'https://gorest.co.in/public-api/users/' + %TRIM(P_ID) ;
 
 
        Exec sql set option commit = *none;
@@ -48,10 +51,10 @@
        // Write the status in file APIMSG
        If ReturnedSqlCode = *Blanks;
           Exec SQL
-             Insert into APIMSG VALUES('1746','SUCCESS');
+             Insert into APIMSG VALUES(:p_ID ,'SUCCESS');
        Else;
           Exec SQL
-             Insert into APIMSG VALUES('1746','FAILED');
+             Insert into APIMSG VALUES(:p_ID ,'FAILED');
        Endif;
 
        *inlr = *on ;
