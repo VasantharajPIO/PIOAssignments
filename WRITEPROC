@@ -1,0 +1,30 @@
+**Free
+       Ctl-Opt Option(*Nodebugio:*Srcstmt:*Nounref) ;
+       Ctl-Opt DFTACTGRP(*NO) ACTGRP(*NEW) BNDDIR('VASANTH/HTTPBND') ;
+
+         Dcl-pr writetoweb extproc('QtmhWrStout');
+            Datavar     Char(65535) Options(*varsize);
+            Datavarlen  Int(10) const;
+            Errorcode   Char(8000) Options(*Varsize);
+         End-Pr;
+
+         Dcl-ds ErrorDs Qualified;
+           BytesProv Int(10) Inz(0);
+           BytesAvail Int(10) Inz(0);
+         End-ds;
+
+         Dcl-c CRLF const(x'0d25');
+         Dcl-S w_DATA Char(5000);
+         /COPY QSYSINC/QRPGLESRC,QUSEC
+
+         w_DATA = 'Content-type:Text/html' + CRLF + CRLF;
+         writetoweb(w_DATA:%len(%trim(w_DATA)):ErrorDs);
+
+         w_DATA = 'My first webservice program.' + CRLF;
+         writetoweb(W_DATA:%len(%trim(W_DATA)):ErrorDs);
+
+         W_DATA = 'Thanks, Vasanth' + CRLF;
+         writetoweb(w_DATA:%len(%trim(w_DATA)):ErrorDs);
+
+
+       *inlr = *on ;
