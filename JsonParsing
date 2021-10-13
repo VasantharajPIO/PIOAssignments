@@ -1,0 +1,76 @@
+**Free
+       Ctl-Opt Option(*Nodebugio:*Srcstmt:*Nounref) ;
+
+       Dcl-S ResponseMsg       Varchar(600) ;
+       Dcl-S ResponseHeader    Varchar(1000) ;
+       Dcl-S ReturnedSQLCode   Char(5) ;
+       Dcl-S w_Url             Char(4096) ;
+       Dcl-S w_Url1            Char(4096) ;
+       Dcl-s MessageText       varchar(32740);
+       Dcl-s MessageLength     int(5);
+       Dcl-s Index             zoned(5);
+       Dcl-S Code              Char(10) ;
+       Dcl-S Page#             Char(10) ;
+       Dcl-S No_Of_Page        Zoned(10) ;
+       Dcl-S w_page            Char(50) inz('?page=') ;
+
+       // Url
+       W_url = 'https://gorest.co.in/public-api/users';
+
+       Exec sql set option commit = *none;
+
+       // URL encoding
+       Exec sql CALL QSYS2.QCMDEXC('CHGJOB CCSID(37)');
+
+       // Call API to get the values
+                 EXEC SQL
+                 SELECT Coalesce(Varchar(ResponseMsg,9999),' '),
+                              Varchar(ResponseHttpHeader,1000)
+                 INTO :ResponseMsg, :ResponseHeader
+                 FROM Table(Systools.HttpGetClobVerbose(:w_Url,'')) ;
+
+       // Validate the response from SQL
+            Exec sql GET DIAGNOSTICS CONDITION 1
+                          :ReturnedSqlCode = DB2_RETURNED_SQLCODE ;
+
+       // Parse the JSON Value and write into PF
+       If ReturnedSqlCode = *Blanks;
+
+            // Get total number of pages in API
+            Exec sql
+               Select * into :Code, :Page#
+               from JSON_TABLE( SYSTOOLS.HTTPGETCLOB(
+               :w_Url, null) ,
+               '$'
+               columns("code" VARCHAR(10),
+               NESTED '$.meta.pagination[*]' columns(
+               "pages" VARCHAR(10)) )) ;
+
+            Monitor;
+              No_Of_Page = %Dec(Page#:10:0) ;
+            On-Error;
+              No_Of_Page = *Zeros ;
+            Endmon ;
+
+            w_Url1  = %trim(w_Url) + %Trim(w_page) ;
+            // Load each page records
+            For Index = 1 to No_of_Page ;
+
+              w_Url  = %trim(w_Url1) + %Char(Index)  ;
+
+              // Load each page records and write into CustMst
+              Exec sql
+                Insert into Vasanth/CustMst
+                Select * from JSON_TABLE( SYSTOOLS.HTTPGETCLOB(
+                :w_Url, null) ,
+                '$.data[*]'
+                columns("id" VARCHAR(10),
+                        "name" VARCHAR(50),
+                        "email" VARCHAR(50),
+                        "gender" VARCHAR(10),
+                        "status" VARCHAR(10) ) ) ;
+            Endfor ;
+
+       Endif;
+
+       *inlr = *on ;
