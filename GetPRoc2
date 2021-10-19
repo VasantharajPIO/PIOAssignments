@@ -1,0 +1,87 @@
+**Free
+       Ctl-Opt Option(*Nodebugio:*Srcstmt:*Nounref) ;
+
+       Dcl-F CUSTDTL usage(*output) ;
+
+       Dcl-S ResponseMsg       Varchar(600) ;
+       Dcl-S ResponseHeader    Varchar(1000) ;
+       Dcl-S ReturnedSQLCode   Char(5) ;
+       Dcl-S w_Url             Char(4096) ;
+       Dcl-s MessageText       varchar(32740);
+       Dcl-s MessageLength     int(5);
+       Dcl-s Index             zoned(5);
+       Dcl-S Code              Char(10) ;
+       Dcl-S Page#             Char(10) ;
+       Dcl-S No_Of_Page        Zoned(10) ;
+       Dcl-S STMT1             Char(1000) ;
+       Dcl-S Quote             Char(1) inz('''') ;
+       Dcl-S Path3             Char(1)  ;
+       Dcl-S w_CUSID           Char(10)  ;
+       Dcl-S w_CUSNAM          Char(25)  ;
+       Dcl-S w_CUSEMAIL        Char(50)  ;
+       Dcl-S w_CUSPHONE        Char(25)  ;
+       Dcl-S w_CUSWEBSITE      Char(50)  ;
+       Dcl-S w_COMNAME         Char(50)  ;
+       Dcl-S w_COMCP           Char(100)  ;
+       Dcl-S w_COMBS           Char(100)  ;
+
+       // Url
+       W_url = 'https://jsonplaceholder.typicode.com/users/1';
+
+       Exec sql set option commit = *none;
+
+       // URL encoding
+       Exec sql CALL QSYS2.QCMDEXC('CHGJOB CCSID(37)');
+
+       // Call API to get the values
+                 EXEC SQL
+                 SELECT Coalesce(Varchar(ResponseMsg,9999),' '),
+                              Varchar(ResponseHttpHeader,1000)
+                 INTO :ResponseMsg, :ResponseHeader
+                 FROM Table(Systools.HttpGetClobVerbose(:w_Url,'')) ;
+
+       // Validate the response from SQL
+            Exec sql GET DIAGNOSTICS CONDITION 1
+                          :ReturnedSqlCode = DB2_RETURNED_SQLCODE ;
+
+       // Parse the JSON Value and write into PF
+       If ReturnedSqlCode = *Blanks;
+
+              Stmt1 = 'Select * from JSON_TABLE( SYSTOOLS.HTTPGETCLOB(' +
+                Quote + %trim(w_Url) + Quote + ',null) ,' +
+                Quote + '$' + Quote +
+                ' columns("id" VARCHAR(10), ' +
+                '"name" VARCHAR(25), '   +
+                '"email" VARCHAR(50), '  +
+                '"phone" VARCHAR(25), '  +
+                '"website" VARCHAR(50), '+
+                'companyname VARCHAR(50) path' +
+                Quote + '$.company.name' + Quote + ', ' +
+                'catchPhrase VARCHAR(100) path' +
+                Quote + '$.company.catchPhrase' + Quote + ', ' +
+                'bs VARCHAR(100) path' +
+                Quote + '$.company.bs' + Quote + '))' ;
+
+          EXEC SQL PREPARE S1 FROM :STMT1;
+          EXEC SQL DECLARE C1 CURSOR FOR S1;
+          EXEC SQL OPEN C1;
+          EXEC SQL FETCH C1 INTO :w_CUSID, :w_CUSNAM , :W_CUSEMAIL,
+             :W_CUSPHONE, :w_CUSWEBSITE, :W_COMNAME, :W_COMCP, :w_COMBS ;
+             Dow Sqlcod = 0 ;
+                  CUSID      =   w_CUSID       ;
+                  CUSNAM     =   w_CUSNAM      ;
+                  CUSEMAIL   =   w_CUSEMAIL    ;
+                  CUSPHONE   =   w_CUSPHONE    ;
+                  CUSWEBSITE =   w_CUSWEBSITE  ;
+                  COMNAME    =   w_COMNAME     ;
+                  COMCP      =   w_COMCP       ;
+                  COMBS      =   w_COMBS       ;
+                  Write CUSTDTLR ;
+          EXEC SQL FETCH C1 INTO :w_CUSID, :w_CUSNAM , :W_CUSEMAIL,
+             :W_CUSPHONE, :w_CUSWEBSITE, :W_COMNAME, :W_COMCP, :w_COMBS ;
+             Enddo;
+          EXEC SQL CLOSE C1;
+
+       Endif;
+
+       *inlr = *on ;
