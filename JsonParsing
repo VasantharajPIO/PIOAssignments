@@ -14,7 +14,7 @@
        Dcl-S No_Of_Page        Zoned(10) ;
        Dcl-S w_page            Char(50) inz('?page=') ;
 
-       // Url
+       // Url link
        W_url = 'https://gorest.co.in/public-api/users';
 
        Exec sql set option commit = *none;
